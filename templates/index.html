@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>برا السالفة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .players-list {
+            margin-top: 20px;
+        }
+
+        .player-input {
+            margin-bottom: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 برا السالفة</h1>
+        <p class="subtitle">لعبة الكلمة السرية</p>
+
+        <div class="form-group">
+            <label for="num_players">عدد اللاعبين:</label>
+            <input type="number" id="num_players" min="3" max="20" value="5">
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="use_gpt" style="width: auto; margin-left: 10px;" value="true" checked>
+                استخدام GPT لتوليد كلمة جديدة
+            </label>
+        </div>
+
+        <div class="form-group" id="topic-group" style="display: block;">
+            <label for="topic">الموضوع (اختياري):</label>
+            <input type="text" id="topic" placeholder="مثال: طعام، رياضة، حيوانات...">
+        </div>
+
+        <div class="form-group">
+            <button onclick="generatePlayerInputs()">إنشاء حقول الأسماء</button>
+        </div>
+
+        <div id="players-container" class="hidden">
+            <div class="form-group">
+                <label>أسماء اللاعبين:</label>
+                <div id="players-list" class="players-list"></div>
+            </div>
+
+            <div class="form-group">
+                <button onclick="startGame()">ابدأ اللعبة</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Show/hide topic input based on GPT checkbox
+        document.getElementById('use_gpt').addEventListener('change', function() {
+            const topicGroup = document.getElementById('topic-group');
+            if (this.checked) {
+                topicGroup.style.display = 'block';
+            } else {
+                topicGroup.style.display = 'none';
+            }
+        });
+
+        function generatePlayerInputs() {
+            const numPlayers = parseInt(document.getElementById('num_players').value);
+            const playersList = document.getElementById('players-list');
+            const playersContainer = document.getElementById('players-container');
+
+            playersList.innerHTML = '';
+
+            for (let i = 0; i < numPlayers; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `اسم اللاعب ${i + 1}`;
+                input.className = 'player-input';
+                input.id = `player-${i}`;
+                input.value = `لاعب ${i + 1}`;
+                playersList.appendChild(input);
+            }
+
+            playersContainer.classList.remove('hidden');
+        }
+
+        async function startGame() {
+            const numPlayers = parseInt(document.getElementById('num_players').value);
+            const playerNames = [];
+            const useGpt = document.getElementById('use_gpt').checked;
+            const topic = document.getElementById('topic').value.trim() || null;
+
+            for (let i = 0; i < numPlayers; i++) {
+                const name = document.getElementById(`player-${i}`).value.trim();
+                if (!name) {
+                    alert(`الرجاء إدخال اسم اللاعب ${i + 1}`);
+                    return;
+                }
+                playerNames.push(name);
+            }
+
+            try {
+                const response = await fetch('/start_game', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        num_players: numPlayers,
+                        player_names: playerNames,
+                        use_gpt: useGpt,
+                        topic: topic
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = '/game';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('حدث خطأ في بدء اللعبة');
+            }
+        }
+    </script>
+</body>
+</html>

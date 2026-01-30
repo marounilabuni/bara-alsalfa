@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>برا السالفة - اللعبة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .player-name {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .word-display {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 2.5em;
+            font-weight: bold;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .word-display.bara {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-view {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-new {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .instruction {
+            color: #666;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+
+        .game-complete {
+            text-align: center;
+        }
+
+        .game-complete h2 {
+            color: #43e97b;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 برا السالفة</h1>
+
+        <div id="game-view">
+            <div class="player-name" id="player-name">دور اللاعب</div>
+            
+            <p class="instruction">اضغط على "عرض الكلمة" لرؤية كلمتك</p>
+
+            <button class="btn-view" id="view-word-btn" onclick="viewWord()">
+                👁️ عرض الكلمة
+            </button>
+
+            <div class="word-display hidden" id="word-display">
+                <span id="word-text"></span>
+            </div>
+
+            <button class="btn-next hidden" id="next-btn" onclick="nextPlayer()">
+                ➡️ اللاعب التالي
+            </button>
+        </div>
+
+        <div id="complete-view" class="game-complete hidden">
+            <h2>✅ انتهت جولة توزيع الكلمات!</h2>
+            <p class="instruction">الآن يمكنكم البدء باللعب. حظاً موفقاً!</p>
+            <button class="btn-new" onclick="newGame()">
+                🔄 لعبة جديدة
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentPlayer = 0;
+
+        async function viewWord() {
+            try {
+                const response = await fetch('/get_player_word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        player_index: currentPlayer
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (errorData.redirect) {
+                        alert('انتهت جلسة اللعبة. سيتم توجيهك للصفحة الرئيسية.');
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error(errorData.error || 'حدث خطأ');
+                }
+
+                const data = await response.json();
+                const wordDisplay = document.getElementById('word-display');
+                const wordText = document.getElementById('word-text');
+                
+                if (data.is_bara) {
+                    wordText.textContent = '🎭 أنت برا السالفة!';
+                    wordDisplay.classList.add('bara');
+                } else {
+                    wordText.textContent = data.word;
+                    wordDisplay.classList.remove('bara');
+                }
+
+                wordDisplay.classList.remove('hidden');
+                document.getElementById('view-word-btn').classList.add('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('حدث خطأ في عرض الكلمة');
+            }
+        }
+
+        async function nextPlayer() {
+            try {
+                const response = await fetch('/next_player', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.complete) {
+                    // Show completion screen
+                    document.getElementById('game-view').classList.add('hidden');
+                    document.getElementById('complete-view').classList.remove('hidden');
+                } else {
+                    // Update for next player
+                    currentPlayer = data.current_player;
+                    document.getElementById('player-name').textContent = data.player_name;
+                    document.getElementById('word-display').classList.add('hidden');
+                    document.getElementById('view-word-btn').classList.remove('hidden');
+                    document.getElementById('next-btn').classList.add('hidden');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('حدث خطأ في الانتقال للاعب التالي');
+            }
+        }
+
+        function newGame() {
+            window.location.href = '/';
+        }
+
+        // Initialize first player name from session/URL params
+        window.onload = function() {
+            // The player name will be loaded from session when the page loads
+            // We'll get it via a dedicated endpoint that doesn't expose the word
+            fetch('/get_current_player')
+                .then(response => {
+                    if (!response.ok) {
+                        // Session not found, redirect to home
+                        window.location.href = '/';
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.player_name) {
+                        document.getElementById('player-name').textContent = data.player_name;
+                    } else if (data && data.redirect) {
+                        window.location.href = '/';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading player name:', error);
+                    window.location.href = '/';
+                });
+        };
+    </script>
+</body>
+</html>
