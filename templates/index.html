@@ -219,47 +219,60 @@
                 playerNames.push(name);
             }
 
-            // Show loading message if using GPT
+            // Show loading message
             const startButton = event.target;
             const originalText = startButton.textContent;
-            if (useGpt) {
-                startButton.textContent = 'جاري توليد الكلمة...';
-                startButton.disabled = true;
-            }
+            startButton.textContent = useGpt ? 'جاري توليد الكلمة...' : 'جاري البدء...';
+            startButton.disabled = true;
 
             try {
-                const response = await fetch('/start_game', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        num_players: numPlayers,
-                        player_names: playerNames,
-                        use_gpt: useGpt,
-                        topic: topic
-                    })
-                });
-
-                const data = await response.json();
+                let word;
                 
-                if (data.success) {
-                    window.location.href = '/game';
-                } else if (data.error) {
-                    // Show error message from server
-                    let errorMsg = data.error;
-                    if (data.error_details) {
-                        console.error('Error details:', data.error_details);
-                    }
-                    alert(errorMsg);
+                if (useGpt) {
+                    // Call GPT API
+                    const response = await fetch('/api/generate_word', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ topic: topic })
+                    });
+
+                    const data = await response.json();
                     
-                    // Reset button
-                    startButton.textContent = originalText;
-                    startButton.disabled = false;
+                    if (!data.success) {
+                        throw new Error(data.error || 'فشل توليد الكلمة');
+                    }
+                    
+                    word = data.word;
+                } else {
+                    // Get random word from server
+                    const response = await fetch('/api/get_random_word');
+                    const data = await response.json();
+                    word = data.word;
                 }
+
+                // Randomly select who is "bara alsalfe"
+                const baraIndex = Math.floor(Math.random() * numPlayers);
+
+                // Create game state
+                const gameState = {
+                    term: word,
+                    baraIndex: baraIndex,
+                    playerNames: playerNames,
+                    currentPlayer: 0,
+                    numPlayers: numPlayers
+                };
+
+                // Save to localStorage
+                localStorage.setItem('baraGameState', JSON.stringify(gameState));
+
+                // Redirect to game page
+                window.location.href = '/game';
+
             } catch (error) {
                 console.error('Error:', error);
-                alert('حدث خطأ في بدء اللعبة. الرجاء المحاولة مرة أخرى.');
+                alert(error.message || 'حدث خطأ في بدء اللعبة. الرجاء المحاولة مرة أخرى.');
                 
                 // Reset button
                 startButton.textContent = originalText;

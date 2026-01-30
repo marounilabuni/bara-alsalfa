@@ -149,111 +149,84 @@
     </div>
 
     <script>
-        let currentPlayer = 0;
+        // Game state stored in memory (not server)
+        let gameState = {
+            term: '',
+            baraIndex: -1,
+            playerNames: [],
+            currentPlayer: 0,
+            numPlayers: 0
+        };
 
-        async function viewWord() {
-            try {
-                const response = await fetch('/get_player_word', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        player_index: currentPlayer
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    if (errorData.redirect) {
-                        alert('انتهت جلسة اللعبة. سيتم توجيهك للصفحة الرئيسية.');
-                        window.location.href = '/';
-                        return;
-                    }
-                    throw new Error(errorData.error || 'حدث خطأ');
-                }
-
-                const data = await response.json();
-                const wordDisplay = document.getElementById('word-display');
-                const wordText = document.getElementById('word-text');
-                
-                if (data.is_bara) {
-                    wordText.textContent = '🎭 أنت برا السالفة!';
-                    wordDisplay.classList.add('bara');
-                } else {
-                    wordText.textContent = data.word;
-                    wordDisplay.classList.remove('bara');
-                }
-
-                wordDisplay.classList.remove('hidden');
-                document.getElementById('view-word-btn').classList.add('hidden');
-                document.getElementById('next-btn').classList.remove('hidden');
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('حدث خطأ في عرض الكلمة');
+        // Load game state from localStorage on page load
+        function loadGameState() {
+            const saved = localStorage.getItem('baraGameState');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                return true;
             }
+            return false;
         }
 
-        async function nextPlayer() {
-            try {
-                const response = await fetch('/next_player', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
+        // Initialize game
+        window.onload = function() {
+            if (!loadGameState()) {
+                // No game state found, redirect to home
+                alert('لم يتم إعداد اللعبة. سيتم توجيهك للصفحة الرئيسية.');
+                window.location.href = '/';
+                return;
+            }
 
-                const data = await response.json();
-                
-                if (data.complete) {
-                    // Show completion screen
-                    document.getElementById('game-view').classList.add('hidden');
-                    document.getElementById('complete-view').classList.remove('hidden');
-                } else {
-                    // Update for next player
-                    currentPlayer = data.current_player;
-                    document.getElementById('player-name').textContent = data.player_name;
-                    document.getElementById('word-display').classList.add('hidden');
-                    document.getElementById('view-word-btn').classList.remove('hidden');
-                    document.getElementById('next-btn').classList.add('hidden');
-                }
+            // Display current player name
+            if (gameState.currentPlayer < gameState.playerNames.length) {
+                document.getElementById('player-name').textContent = 
+                    gameState.playerNames[gameState.currentPlayer];
+            }
+        };
 
-            } catch (error) {
-                console.error('Error:', error);
-                alert('حدث خطأ في الانتقال للاعب التالي');
+        function viewWord() {
+            const playerIndex = gameState.currentPlayer;
+            const wordDisplay = document.getElementById('word-display');
+            const wordText = document.getElementById('word-text');
+            
+            // Check if this player is "bara alsalfe"
+            if (playerIndex === gameState.baraIndex) {
+                wordText.textContent = '🎭 أنت برا السالفة!';
+                wordDisplay.classList.add('bara');
+            } else {
+                wordText.textContent = gameState.term;
+                wordDisplay.classList.remove('bara');
+            }
+
+            wordDisplay.classList.remove('hidden');
+            document.getElementById('view-word-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextPlayer() {
+            gameState.currentPlayer++;
+            
+            // Save updated state
+            localStorage.setItem('baraGameState', JSON.stringify(gameState));
+            
+            if (gameState.currentPlayer >= gameState.numPlayers) {
+                // Game complete
+                document.getElementById('game-view').classList.add('hidden');
+                document.getElementById('complete-view').classList.remove('hidden');
+            } else {
+                // Update for next player
+                document.getElementById('player-name').textContent = 
+                    gameState.playerNames[gameState.currentPlayer];
+                document.getElementById('word-display').classList.add('hidden');
+                document.getElementById('view-word-btn').classList.remove('hidden');
+                document.getElementById('next-btn').classList.add('hidden');
             }
         }
 
         function newGame() {
+            localStorage.removeItem('baraGameState');
             window.location.href = '/';
         }
-
-        // Initialize first player name from session/URL params
-        window.onload = function() {
-            // The player name will be loaded from session when the page loads
-            // We'll get it via a dedicated endpoint that doesn't expose the word
-            fetch('/get_current_player')
-                .then(response => {
-                    if (!response.ok) {
-                        // Session not found, redirect to home
-                        window.location.href = '/';
-                        return;
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.player_name) {
-                        document.getElementById('player-name').textContent = data.player_name;
-                    } else if (data && data.redirect) {
-                        window.location.href = '/';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading player name:', error);
-                    window.location.href = '/';
-                });
-        };
     </script>
 </body>
 </html>
