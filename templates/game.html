@@ -115,6 +115,7 @@
             color: #43e97b;
             margin-bottom: 20px;
         }
+
     </style>
 </head>
 <body>
@@ -172,7 +173,7 @@
         window.onload = function() {
             if (!loadGameState()) {
                 // No game state found, redirect to home
-                alert('لم يتم إعداد اللعبة. سيتم توجيهك للصفحة الرئيسية.');
+                console.error('No game state found - redirecting to home');
                 window.location.href = '/';
                 return;
             }

@@ -125,6 +125,7 @@
             display: block;
             margin-bottom: 5px;
         }
+
     </style>
 </head>
 <body>
@@ -213,7 +214,9 @@
             for (let i = 0; i < numPlayers; i++) {
                 const name = document.getElementById(`player-${i}`).value.trim();
                 if (!name) {
-                    alert(`الرجاء إدخال اسم اللاعب ${i + 1}`);
+                    console.error(`Missing player name at index ${i + 1}`);
+                    // Focus on the empty input field
+                    document.getElementById(`player-${i}`).focus();
                     return;
                 }
                 playerNames.push(name);
@@ -238,17 +241,38 @@
                         body: JSON.stringify({ topic: topic })
                     });
 
+                    // Check if response is ok (status 200-299)
+                    if (!response.ok) {
+                        const data = await response.json();
+                        let errorMsg = data.error || 'فشل توليد الكلمة باستخدام GPT';
+                        
+                        // Add helpful suggestion
+                        errorMsg += '\n\nيمكنك المحاولة مرة أخرى أو إلغاء تفعيل GPT لاستخدام الكلمات المحفوظة.';
+                        
+                        throw new Error(errorMsg);
+                    }
+
                     const data = await response.json();
                     
-                    if (!data.success) {
-                        throw new Error(data.error || 'فشل توليد الكلمة');
+                    if (!data.success || !data.word) {
+                        throw new Error('فشل توليد الكلمة باستخدام GPT.\n\nيمكنك المحاولة مرة أخرى أو إلغاء تفعيل GPT لاستخدام الكلمات المحفوظة.');
                     }
                     
                     word = data.word;
                 } else {
                     // Get random word from server
                     const response = await fetch('/api/get_random_word');
+                    
+                    if (!response.ok) {
+                        throw new Error('فشل الحصول على كلمة عشوائية من السيرفر.');
+                    }
+                    
                     const data = await response.json();
+                    
+                    if (!data.success || !data.word) {
+                        throw new Error('فشل الحصول على كلمة عشوائية.');
+                    }
+                    
                     word = data.word;
                 }
 
@@ -272,9 +296,14 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                alert(error.message || 'حدث خطأ في بدء اللعبة. الرجاء المحاولة مرة أخرى.');
+                console.error('Error details:', {
+                    message: error.message,
+                    useGpt: useGpt,
+                    topic: topic,
+                    timestamp: new Date().toISOString()
+                });
                 
-                // Reset button
+                // Reset button - no popup shown
                 startButton.textContent = originalText;
                 startButton.disabled = false;
             }

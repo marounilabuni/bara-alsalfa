@@ -2,6 +2,8 @@
 
 A Flask web application for the popular Arabic party game "برا السالفة" (Out of the Loop).
 
+**🎉 Now Vercel-Ready!** This app uses frontend state management (no sessions), making it compatible with serverless platforms like Vercel, Netlify, Render, Railway, and more!
+
 ## Features
 
 - **Player Setup**: Enter number of players and their names
@@ -97,10 +99,12 @@ TERMS = [
 
 ## Tech Stack
 
-- **Backend**: Flask (Python)
-- **Frontend**: HTML5, CSS3, JavaScript
+- **Backend**: Flask (Python) - Stateless API
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript
+- **State Management**: localStorage (no sessions!)
 - **Styling**: Custom CSS with gradient designs
 - **Language Support**: Arabic (RTL)
+- **Deployment**: Vercel-ready (also works on Render, Railway, etc.)
 
 ## Requirements
 
@@ -109,6 +113,26 @@ TERMS = [
 - Werkzeug 3.0.1
 - OpenAI API (for GPT word generation - optional)
 - python-dotenv 1.0.0
+- gunicorn 21.2.0 (for production deployment)
+
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment instructions to:
+- ✅ Vercel (serverless)
+- ✅ Render (container)
+- ✅ Railway (container)
+- ✅ Fly.io (container)
+
+**Quick Deploy to Vercel:**
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+vercel
+
+# Add your OPENAI_API_KEY in Vercel dashboard
+```
 
 ## Testing GPT Word Generation
 
