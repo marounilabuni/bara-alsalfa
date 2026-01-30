@@ -24,6 +24,7 @@ def get_gpt_word(topic=None):
         raise Exception("OPENAI_API_KEY not found in environment variables")
     
     try:
+        # Initialize OpenAI client with minimal config for Vercel compatibility
         client = OpenAI(api_key=api_key)
         
         if topic:

@@ -52,11 +52,15 @@ def generate_word():
     except Exception as e:
         error_msg = str(e)
         print(f"Error generating word with GPT: {error_msg}")
+        
+        # If GPT fails, automatically fallback to random word
+        print("Falling back to random word...")
+        fallback_word = random.choice(TERMS)
         return jsonify({
-            'success': False,
-            'error': 'فشل توليد الكلمة باستخدام GPT. الرجاء المحاولة مرة أخرى أو إلغاء تفعيل GPT.',
-            'error_details': error_msg
-        }), 500
+            'success': True,
+            'word': fallback_word,
+            'fallback': True
+        })
 
 @app.route('/api/get_random_word', methods=['GET'])
 def get_random_word():
