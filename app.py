@@ -30,7 +30,7 @@ TERMS = [
     "صحراء"
 ]
 
-def get_term(topic=None, use_gpt=False):
+def get_term(topic=None, use_gpt=True):
     """
     Get a term for the game.
     
@@ -39,17 +39,19 @@ def get_term(topic=None, use_gpt=False):
         use_gpt (bool): If True, use GPT to generate word. If False, use predefined list
     
     Returns:
-        str: A word/term in Arabic
+        tuple: (word, error_message) - error_message is None if successful
     """
     if use_gpt:
         try:
-            return get_gpt_word(topic)
+            word = get_gpt_word(topic)
+            return (word, None)
         except Exception as e:
-            print(f"Error generating word with GPT: {e}")
-            # Fallback to predefined list
-            return random.choice(TERMS)
+            error_msg = str(e)
+            print(f"Error generating word with GPT: {error_msg}")
+            # Return error instead of fallback
+            return (None, error_msg)
     else:
-        return random.choice(TERMS)
+        return (random.choice(TERMS), None)
 
 def get_word(player_index, total_players, term):
     """
@@ -72,11 +74,25 @@ def start_game():
     data = request.json
     num_players = int(data.get('num_players', 3))
     player_names = data.get('player_names', [])
-    use_gpt = data.get('use_gpt', False)
+    use_gpt = data.get('use_gpt', True)  # Default to True
     topic = data.get('topic', None)
     
+    print('--------------------------------')
+    print(f"Topic: {topic}")
+    print(f"Use GPT: {use_gpt}")
+    print(f"Player Names: {player_names}")
+    print(f"Number of Players: {num_players}")
+    print('--------------------------------')
     # Generate the term for this game
-    term = get_term(topic=topic, use_gpt=use_gpt)
+    term, error = get_term(topic=topic, use_gpt=use_gpt)
+    
+    # If GPT failed and use_gpt was True, return error
+    if term is None and error:
+        return jsonify({
+            'success': False,
+            'error': 'فشل توليد الكلمة باستخدام GPT. الرجاء المحاولة مرة أخرى أو إلغاء تفعيل GPT.',
+            'error_details': error
+        }), 500
     
     # Randomly select who is "bara alsalfe"
     bara_index = random.randint(0, num_players - 1)

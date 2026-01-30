@@ -5,7 +5,10 @@ A Flask web application for the popular Arabic party game "برا السالفة
 ## Features
 
 - **Player Setup**: Enter number of players and their names
-- **Random Word Selection**: Automatically selects a random word from a predefined list
+- **AI Word Generation**: GPT-4 generates fresh, unique words (enabled by default)
+- **Topic Selection**: Optional topic to guide word generation
+- **Fallback System**: Uses predefined words if GPT fails or is disabled
+- **Error Handling**: Clear error messages if word generation fails
 - **Secret Role Assignment**: One random player becomes "برا السالفة"
 - **Sequential Word Reveal**: Each player views their word/role privately
 - **Beautiful Arabic UI**: RTL support with modern gradient design
@@ -36,11 +39,13 @@ The app will be available at `http://localhost:5000`
 
 1. **Setup Phase**:
    - Enter the number of players (minimum 3)
-   - (Optional) Check "استخدام GPT" to use AI-generated words
-   - (Optional) Enter a topic for the word (e.g., طعام, رياضة)
+   - **GPT is enabled by default** - generates fresh, unique words
+   - (Optional) Enter a topic for the word (e.g., طعام, رياضة, حيوانات)
+   - Uncheck GPT if you want to use predefined words instead
    - Click "إنشاء حقول الأسماء" to generate name fields
    - Enter each player's name
    - Click "ابدأ اللعبة" to start
+   - If GPT fails, you'll see an error message - try again or disable GPT
 
 2. **Word Distribution Phase**:
    - Each player takes turns
@@ -56,11 +61,13 @@ The app will be available at `http://localhost:5000`
 
 ## Game Functions
 
-### `get_term(topic=None, use_gpt=False)`
-Returns a term for the game.
+### `get_term(topic=None, use_gpt=True)`
+Returns a term for the game with error handling.
+- **Default**: `use_gpt=True` - GPT is enabled by default
 - If `use_gpt=True`: Uses GPT-4 to generate a fresh word
 - If `use_gpt=False`: Returns a random term from the predefined list
 - `topic` (optional): Specific topic for the word (e.g., "طعام", "رياضة")
+- **Returns**: `(word, error)` tuple - word is None if error occurred
 
 ### `get_word(player_index, total_players, term)`
 Determines what each player sees:
@@ -105,6 +112,7 @@ TERMS = [
 
 ## Testing GPT Word Generation
 
+### Basic Testing
 To test the GPT word generation function independently:
 
 ```bash
@@ -112,5 +120,41 @@ python test_gpt_word.py
 ```
 
 This will generate sample words with and without topics to verify the function works correctly.
+
+### Error Handling Testing
+To test error handling and edge cases:
+
+```bash
+python test_gpt_error_handling.py
+```
+
+This comprehensive test checks:
+- Normal word generation
+- Generation with topics
+- Missing API key handling
+- App-level error handling
+
+## Error Handling
+
+The app has robust error handling:
+
+1. **GPT Generation Fails**: 
+   - User sees a clear Arabic error message
+   - Button returns to normal state
+   - User can try again or disable GPT
+
+2. **Missing API Key**:
+   - Error message explains the issue
+   - User is prompted to add API key or disable GPT
+
+3. **Network Issues**:
+   - Timeout after 10 seconds
+   - User-friendly error message
+   - Can retry immediately
+
+4. **Loading States**:
+   - Button shows "جاري توليد الكلمة..." while waiting
+   - Button is disabled during generation
+   - Prevents double-submission
 
 Enjoy playing برا السالفة! 🎮

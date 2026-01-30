@@ -101,8 +101,29 @@
             transform: translateY(0);
         }
 
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .hidden {
             display: none;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #1565c0;
+            font-size: 0.9em;
+            text-align: right;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -119,8 +140,13 @@
         <div class="form-group">
             <label>
                 <input type="checkbox" id="use_gpt" style="width: auto; margin-left: 10px;" value="true" checked>
-                استخدام GPT لتوليد كلمة جديدة
+                استخدام GPT لتوليد كلمة جديدة (مُفعّل افتراضياً)
             </label>
+        </div>
+
+        <div class="info-box" id="gpt-info" style="display: none;">
+            <strong>ℹ️ ملاحظة:</strong>
+            عند تفعيل GPT، سيتم توليد كلمة جديدة ومبتكرة لكل لعبة. إذا فشل التوليد، سيظهر لك رسالة خطأ ويمكنك المحاولة مرة أخرى أو إلغاء تفعيل GPT لاستخدام الكلمات المحفوظة.
         </div>
 
         <div class="form-group" id="topic-group" style="display: block;">
@@ -145,13 +171,16 @@
     </div>
 
     <script>
-        // Show/hide topic input based on GPT checkbox
+        // Show/hide topic input and info box based on GPT checkbox
         document.getElementById('use_gpt').addEventListener('change', function() {
             const topicGroup = document.getElementById('topic-group');
+            const gptInfo = document.getElementById('gpt-info');
             if (this.checked) {
                 topicGroup.style.display = 'block';
+                gptInfo.style.display = 'block';
             } else {
                 topicGroup.style.display = 'none';
+                gptInfo.style.display = 'none';
             }
         });
 
@@ -190,6 +219,14 @@
                 playerNames.push(name);
             }
 
+            // Show loading message if using GPT
+            const startButton = event.target;
+            const originalText = startButton.textContent;
+            if (useGpt) {
+                startButton.textContent = 'جاري توليد الكلمة...';
+                startButton.disabled = true;
+            }
+
             try {
                 const response = await fetch('/start_game', {
                     method: 'POST',
@@ -208,10 +245,25 @@
                 
                 if (data.success) {
                     window.location.href = '/game';
+                } else if (data.error) {
+                    // Show error message from server
+                    let errorMsg = data.error;
+                    if (data.error_details) {
+                        console.error('Error details:', data.error_details);
+                    }
+                    alert(errorMsg);
+                    
+                    // Reset button
+                    startButton.textContent = originalText;
+                    startButton.disabled = false;
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('حدث خطأ في بدء اللعبة');
+                alert('حدث خطأ في بدء اللعبة. الرجاء المحاولة مرة أخرى.');
+                
+                // Reset button
+                startButton.textContent = originalText;
+                startButton.disabled = false;
             }
         }
     </script>
